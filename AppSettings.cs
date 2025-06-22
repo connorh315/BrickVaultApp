@@ -19,7 +19,7 @@ namespace BrickVaultApp
 
         private const string settingsFile = "settings.txt";
 
-        public const string SupportPage = "https://github.com/connorh315/BrickVaultApp/support/gettingstarted.md";
+        public const string SupportPage = "https://github.com/connorh315/BrickVault/Support/GettingStarted.md";
 
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name)
