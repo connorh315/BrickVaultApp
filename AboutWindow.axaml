@@ -1,0 +1,35 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="1000"
+        x:Class="BrickVaultApp.AboutWindow"
+        Title="About"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <Grid>
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,10,0,10" Spacing="10">
+      <!-- App Icon -->
+      <Image Source="avares://BrickVaultApp/Assets/brickvaultico.png"
+             Width="400" Height="400" Stretch="Uniform"/>
+
+      <!-- App Name -->
+      <TextBlock Text="BrickVault"
+                 FontSize="38"
+                 FontWeight="Bold"
+                 HorizontalAlignment="Center"/>
+
+      <!-- Version --> 
+      <TextBlock Text="{Binding Version}"
+                 FontSize="24"
+                 HorizontalAlignment="Center"/>
+
+      <!-- Your Name -->
+      <TextBlock Text="Connor"
+                 FontSize="24"
+                 HorizontalAlignment="Center"
+                 Foreground="Gray"/>
+    </StackPanel>
+  </Grid>
+</Window>

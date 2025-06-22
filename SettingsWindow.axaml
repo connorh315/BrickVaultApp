@@ -1,0 +1,23 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="400"
+        x:Class="BrickVaultApp.SettingsWindow"
+        Title="Settings"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Padding="10">
+      <Button Content="Save Settings" HorizontalAlignment="Center" Click="SaveSettings_Click" />
+    </Border>
+
+    <ScrollViewer>
+      <StackPanel Margin="10" Spacing="8">
+        <CheckBox Content="Should log progress to command line" IsChecked="{Binding Settings.ShouldLogProgressToCommandLine}" />
+        <CheckBox Content="Should search in subfolders for DAT files" IsChecked="{Binding Settings.OpenRecursively}" />
+      </StackPanel>
+    </ScrollViewer>
+  </DockPanel>
+</Window>

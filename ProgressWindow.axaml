@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="150"
+        x:Class="BrickVaultApp.ProgressWindow"
+        Title="Extracting"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="10">
+    <TextBlock Name="ProgressStat" Text="{Binding ProgressText}" HorizontalAlignment="Center"/>
+    <ProgressBar Name="ProgressIndicator" Width="200" Value="{Binding Progress}"/>
+    <TextBlock Name="TimeStat" HorizontalAlignment="Center" Text="{Binding ElapsedTimeText}" />
+    <Button x:Name="Interact" HorizontalAlignment="Center" Content="{Binding InteractText}" Click="OnInteractClick" />
+  </StackPanel>
+</Window>

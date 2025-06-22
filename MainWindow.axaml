@@ -1,0 +1,58 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="BrickVaultApp.MainWindow"
+        DragDrop.AllowDrop="True" DragDrop.Drop="Window_DragDrop"
+        Title="BrickVault">
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+    </Grid.RowDefinitions>
+    <Menu Grid.Row="0">
+      <MenuItem Header="_File">
+        <MenuItem Header="_Open" Click="MenuItem_Open_Click"/>
+        <MenuItem Header="O_pen Folder" Click="MenuItem_Open_Folder_Click"/>
+        <MenuItem Header="_Exit" Click="MenuItem_Exit_Click"/>
+      </MenuItem>
+      <MenuItem Header="_Extract">
+        <MenuItem Header="{Binding ExtractSelectionHeader}" Click="MenuItem_ExtractSelection_Click"/>
+        <MenuItem Header="{Binding ExtractAllFilesHeader}" Click="MenuItem_ExtractAll_Click"/>
+      </MenuItem>
+      <MenuItem Header="Se_ttings" Click="MenuItem_Settings"/>
+      <MenuItem Header="_Help">
+        <MenuItem Header="Getting Started" Click="MenuItem_Help"/>
+        <MenuItem Header="About" Click="MenuItem_About"/>
+      </MenuItem>
+    </Menu>
+    
+    <TextBox Grid.Row="1" Watermark="Search" Margin="10 10 10 10" Text="{Binding SearchText, Mode=TwoWay}"/>
+    
+    <TreeView Grid.Row="2" x:Name="FileGrid" ItemsSource="{Binding Nodes}" IsVisible="{Binding !HasSearchResults}">
+      <TreeView.ItemTemplate>
+        <TreeDataTemplate ItemsSource="{Binding SubNodes}">
+          <TextBlock Text="{Binding Title}"/>
+        </TreeDataTemplate>
+      </TreeView.ItemTemplate>
+
+      <TreeView.Styles>
+        <Style Selector="TreeViewItem">
+          <Setter Property="IsExpanded" Value="{Binding IsExpanded}"/>
+          <Setter Property="IsEnabled" Value="{Binding IsEnabled}"/>
+          <Setter Property="IsVisible" Value="{Binding IsVisible}"/>
+        </Style>
+      </TreeView.Styles>
+    </TreeView>
+
+    <ListBox x:Name="FileList" SelectionMode="Multiple" Grid.Row="2" ItemsSource="{Binding SearchResults}" IsVisible="{Binding HasSearchResults}">
+      <ListBox.ItemTemplate>
+        <DataTemplate>
+          <TextBlock Text="{Binding Path}" DoubleTapped="SearchResult_DoubleTapped"/>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+  </Grid>
+</Window>
