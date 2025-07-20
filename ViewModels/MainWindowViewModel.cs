@@ -224,6 +224,8 @@ namespace BrickVaultApp.ViewModels
 
                         path = thisPath + "\\";
                     }
+
+                    current.Size = $"[{file.GetFormattedSize()}]";
                 }
             }
 
