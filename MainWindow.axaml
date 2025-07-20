@@ -34,7 +34,18 @@
     <TreeView Grid.Row="2" x:Name="FileGrid" ItemsSource="{Binding Nodes}" IsVisible="{Binding !HasSearchResults}">
       <TreeView.ItemTemplate>
         <TreeDataTemplate ItemsSource="{Binding SubNodes}">
-          <TextBlock Text="{Binding Title}"/>
+          <Grid>
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="250"/>
+              <ColumnDefinition Width="100"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- File name -->
+            <TextBlock Grid.Column="0" Text="{Binding Title}" VerticalAlignment="Center"/>
+
+            <!-- File size -->
+            <TextBlock Grid.Column="1" Text="{Binding Size}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+          </Grid>
         </TreeDataTemplate>
       </TreeView.ItemTemplate>
 

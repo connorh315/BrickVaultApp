@@ -13,6 +13,14 @@ namespace BrickVaultApp.ViewModels
     public class TreeNodeViewModel : INotifyPropertyChanged
     {
         public string Title { get; set; }
+
+        private string size;
+        public string Size
+        {
+            get => size;
+            set => size = value;
+        }
+
         public string Path { get; set; }
 
         public Dictionary<string, TreeNodeViewModel> Children { get; set; } = new();

@@ -168,6 +168,8 @@ namespace BrickVaultApp.ViewModels
 
                     path = thisPath + "\\";
                 }
+
+                current.Size = $"[{file.GetFormattedSize()}]";
             }
 
             foreach (var kvp in root.Children.OrderBy(kv => kv.Key))
