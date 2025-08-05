@@ -21,6 +21,13 @@ namespace BrickVaultApp.ViewModels
             set => size = value;
         }
 
+        private string archive;
+        public string Archive
+        {
+            get => archive;
+            set => archive = value;
+        }
+
         public string Path { get; set; }
 
         public Dictionary<string, TreeNodeViewModel> Children { get; set; } = new();

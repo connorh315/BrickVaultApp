@@ -170,6 +170,7 @@ namespace BrickVaultApp.ViewModels
                 }
 
                 current.Size = $"[{file.GetFormattedSize()}]";
+                current.Archive = "";
             }
 
             foreach (var kvp in root.Children.OrderBy(kv => kv.Key))
@@ -226,6 +227,7 @@ namespace BrickVaultApp.ViewModels
                     }
 
                     current.Size = $"[{file.GetFormattedSize()}]";
+                    current.Archive = Path.GetFileNameWithoutExtension(dat.FileLocation);
                 }
             }
 
@@ -263,13 +265,18 @@ namespace BrickVaultApp.ViewModels
                 { // selection is folder
                     path += "\\";
 
+                    Dictionary<string, bool> handledFiles = new(); // not my finest piece of work
+
                     foreach (var dat in currentDatFiles)
                     {
                         foreach (ArchiveFile file in dat.Files)
                         {
                             if (file.Path.StartsWith(path))
                             {
+                                if (handledFiles.ContainsKey(file.Path)) continue;
+
                                 dict[dat].Add(file);
+                                handledFiles[file.Path] = true;
                                 totalFiles++;
                                 continue;
                             }

@@ -38,6 +38,7 @@
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="250"/>
               <ColumnDefinition Width="100"/>
+              <ColumnDefinition Width="200"/>
             </Grid.ColumnDefinitions>
 
             <!-- File name -->
@@ -45,6 +46,9 @@
 
             <!-- File size -->
             <TextBlock Grid.Column="1" Text="{Binding Size}" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+
+            <!-- File archive -->
+            <TextBlock Grid.Column="2" Text="{Binding Archive}" Foreground="Gray" HorizontalAlignment="Right" VerticalAlignment="Center"/>
           </Grid>
         </TreeDataTemplate>
       </TreeView.ItemTemplate>
