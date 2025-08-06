@@ -73,7 +73,7 @@ namespace BrickVaultApp
                 AllowMultiple = false,
                 FileTypeFilter = new[]
                 {
-                    new FilePickerFileType("DAT files") { Patterns = new[] { "*.DAT", "*.DAT2" } }
+                    new FilePickerFileType("DAT files") { Patterns = new[] { "*.DAT", "*.DAT2", "*.DATWIN", "*.DATNX" } }
                 }
             });
 
