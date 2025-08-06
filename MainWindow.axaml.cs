@@ -171,6 +171,14 @@ namespace BrickVaultApp
             await vm.ExtractSelection(selection, outputLocation, this);
         }
 
+        private async void MenuItem_BuildArchive_Click(object? sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainWindowViewModel vm)
+                return;
+
+            await vm.OpenBuild(this);
+        }
+
         private async void MenuItem_Help(object? sender, RoutedEventArgs e)
         {
             Process.Start(new ProcessStartInfo
@@ -194,6 +202,14 @@ namespace BrickVaultApp
                 return;
 
             await vm.OpenSettings(AppSettings.Settings, this);
+        }
+
+        private async void MenuItem_Rebuild_Click(object? sender, RoutedEventArgs e)
+        {
+            if (DataContext is not MainWindowViewModel vm)
+                return;
+
+            vm.Build(this);
         }
 
         private void SearchResult_DoubleTapped(object? sender, RoutedEventArgs e)

@@ -1,0 +1,30 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="BrickVaultApp.BuildProgressWindow"
+        Title="Build Progress"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="20" Spacing="10">
+    <TextBlock Text="Building..." FontSize="16" HorizontalAlignment="Center" />
+
+    <!-- Status message -->
+    <TextBlock Text="{Binding ProgressString}" HorizontalAlignment="Center" FontWeight="Bold" />
+
+    <!-- Progress bar -->
+    <ProgressBar Minimum="0"
+                 Maximum="{Binding Progress.Total}"
+                 Value="{Binding Progress.Current}"
+                 Height="20" />
+
+    <!-- Cancel button -->
+    <Button Content="{Binding ButtonString}"
+            Width="100"
+            HorizontalAlignment="Center"
+            HorizontalContentAlignment="Center"
+            Click="Cancel_Click" />
+  </StackPanel>
+</Window>

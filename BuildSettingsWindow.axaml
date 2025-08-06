@@ -1,0 +1,55 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="550"
+        x:Class="BrickVaultApp.BuildSettingsWindow"
+        Title="Build Archive Settings"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="10" Spacing="10">
+    <TextBlock Text="Build Settings"
+               FontSize="18"
+               HorizontalAlignment="Center"
+               />
+    <Button Content="Delete build" Click="Delete_Click" Foreground="Red" HorizontalAlignment="Center" IsVisible="{Binding AlreadyExists}" />
+    <Border BorderBrush="Gray" BorderThickness="0,1,0,1" Padding="0,10" Margin="0,0,0,20">
+      <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+        <TextBlock Text="Archive Type" VerticalAlignment="Center" Width="100"/>
+        <ToggleButton Content="MOD"
+                      IsChecked="{Binding IsMod, Mode=TwoWay}"
+                      Width="80"
+                      HorizontalContentAlignment="Center"
+                      VerticalAlignment="Center"
+                      />
+        <ToggleButton Content="GAME"
+                      IsChecked="{Binding !IsMod, Mode=TwoWay}"
+                      Width="80"
+                      HorizontalContentAlignment="Center"
+                      VerticalAlignment="Center"
+                      />
+      </StackPanel>
+    </Border>
+    <StackPanel Spacing="10" Margin="10">
+      <TextBlock IsVisible="{Binding !IsMod}" TextWrapping="Wrap">
+        <Run Text="WARNING:" Foreground="Red" />
+        <Run Text="Building game archives is experimental and will not always work. A later release will include a more robust system." />
+      </TextBlock>
+      <FSInput InputLabel="Input Folder" Value="{Binding ArchiveFolder, Mode=TwoWay}" IsFileInput="False" />
+      <FSInput InputLabel="Output File" Value="{Binding ArchivePath, Mode=TwoWay}" />
+      <Input InputLabel="Friendly Name" Value="{Binding FriendlyName, Mode=TwoWay}"/>
+      <Input InputLabel="Mod Name" Value="{Binding ModName, Mode=TwoWay}" IsVisible="{Binding IsMod}"/>
+      <Input InputLabel="Author" Value="{Binding ModAuthor, Mode=TwoWay}" IsVisible="{Binding IsMod}"/>
+      <Input InputLabel="Version" Value="{Binding ModVersion, Mode=TwoWay}" IsVisible="{Binding IsMod}"/>
+      <CheckBox Content="Build HDR File" IsChecked="{Binding BuildHDRFile, Mode=TwoWay}" />
+      <StackPanel Orientation="Horizontal">
+        <TextBlock Text="Archive Version" VerticalAlignment="Center" Width="150" />
+        <ComboBox ItemsSource="{Binding AvailableArchiveTypes}"
+            SelectedItem="{Binding ArchiveVersion, Mode=TwoWay}"
+            Width="150" />
+      </StackPanel>
+    </StackPanel>
+    <Button Content="Save settings" Click="SaveSettings_Click" HorizontalAlignment="Center" HorizontalContentAlignment="Center" />
+  </StackPanel>
+</Window>

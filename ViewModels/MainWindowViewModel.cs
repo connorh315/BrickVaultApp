@@ -13,6 +13,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BrickVaultApp.ViewModels
 {
@@ -96,6 +97,27 @@ namespace BrickVaultApp.ViewModels
             }
         }
 
+        private BuildArchiveViewModel buildArchive;
+        public BuildArchiveViewModel BuildArchive
+        {
+            get => buildArchive;
+            set
+            {
+                buildArchive = value;
+                IsBuildLoaded = true;
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(BuildArchive)));
+            }
+        }
+
+        public bool IsBuildLoaded
+        {
+            get => buildArchive != null;
+            set
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsBuildLoaded)));
+            }
+        }
+
         public void FilterTreeView()
         {
             if (currentDatFile == null && currentDatFiles == null) return;
@@ -137,12 +159,17 @@ namespace BrickVaultApp.ViewModels
             Nodes.Add(message);
         }
 
-        public void OpenDatFile(string datFileLocation)
+        public void Reset()
         {
             currentDatFile = null;
             currentDatFiles = null;
             SearchText = "";
             Nodes.Clear();
+        }
+
+        public void OpenDatFile(string datFileLocation)
+        {
+            Reset();
 
             var dat = DATFile.Open(datFileLocation);
 
@@ -185,10 +212,7 @@ namespace BrickVaultApp.ViewModels
 
         public void OpenFolder(string folderLocation)
         {
-            currentDatFile = null;
-            currentDatFiles = null;
-            SearchText = "";
-            Nodes.Clear();
+            Reset();
 
             List<DATFile> files = new List<DATFile>();
 
@@ -351,6 +375,60 @@ namespace BrickVaultApp.ViewModels
             }
         }
 
+        public async void Build(Window window)
+        {
+            if (!IsBuildLoaded) return;
+
+            Reset();
+
+            DATBuildSettings build = new DATBuildSettings();
+
+            build.OutputFileLocation = BuildArchive.ArchivePath;
+            build.InputFolderLocation = BuildArchive.ArchiveFolder;
+            build.Version = BuildArchive.ArchiveVersion;
+            build.ShouldCreateHDR = BuildArchive.BuildHDRFile;
+            build.BuilderID = AppSettings.AppString;
+            if (BuildArchive.IsMod)
+            {
+                build.SetupAsMod(BuildArchive.ModAuthor, BuildArchive.ModName, BuildArchive.ModVersion);
+            }
+
+            // Setup progress tracking
+            var progress = new BuildProgress();
+            var modal = new BuildProgressWindow(progress);
+
+            // Start build task
+            var buildTask = Task.Run(() =>
+            {
+                try
+                {
+                    DATFile.BuildFromFolder(build, progress);
+                }
+                catch (OperationCanceledException)
+                {
+                    progress.Status = BuildStatus.Cancelled;
+                }
+            }, progress.CancellationToken);
+
+            // Show the modal while building
+            await modal.ShowDialog(window);
+
+            if (!buildTask.IsCompleted) // User has probably shut the window down manually
+            {
+                progress.Cancel(); // Triggers cancellation token
+            }
+
+            // Optionally open the file after building
+            if (progress.Status == BuildStatus.Done)
+            {
+                BuildArchive.BuildCount++;
+                BuildArchive.BuildDate = DateTime.Now;
+                BuildList.Update();
+
+                OpenDatFile(build.OutputFileLocation);
+            }
+        }
+
         public async Task OpenSettings(AppSettings settings, Window window)
         {
             var settingsWindow = new SettingsWindow(settings);
@@ -363,6 +441,20 @@ namespace BrickVaultApp.ViewModels
             var aboutWindow = new AboutWindow();
 
             await aboutWindow.ShowDialog(window);
+        }
+
+        public async Task OpenBuild(Window window)
+        {
+            var buildWindow = new BuildWindow();
+
+            await buildWindow.ShowDialog(window);
+
+            if (buildWindow.SelectedBuild != null)
+            {
+                BuildArchive = buildWindow.SelectedBuild;
+
+                Build(window);
+            }
         }
     }
 }

@@ -1,0 +1,66 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="BrickVaultApp.BuildWindow"
+        Title="Build Archive"
+        CanResize="False"
+        ShowInTaskbar="False"
+        WindowStartupLocation="CenterOwner">
+  <StackPanel Margin="20" Spacing="10">
+    <TextBlock Text="Choose an archive to build"
+               FontSize="18"
+               HorizontalAlignment="Center"
+               Margin="0,0,0,10"/>
+
+    <ScrollViewer Height="500">
+      <StackPanel Width="710">
+        <!-- Archive List -->
+        <ItemsControl ItemsSource="{Binding BuildArchives}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Border BorderThickness="1" BorderBrush="Gray" Padding="10" Margin="0,0,0,10" HorizontalAlignment="Center">
+                <DockPanel>
+                  <StackPanel DockPanel.Dock="Left" Width="600">
+                    <TextBlock>
+                      <Run FontSize="18" FontWeight="Bold" Text="{Binding FriendlyName}" />
+                      <Run Text=" - Last built:" />
+                      <Run Text="{Binding LastBuilt}" />
+                    </TextBlock>
+                    <TextBlock>
+                      <Run Text="Output File:" />
+                      <Run Text="{Binding ArchivePath}" />
+                    </TextBlock>
+                    <TextBlock>
+                      <Run Text="Input Folder:" />
+                      <Run Text="{Binding ArchiveFolder}" />
+                    </TextBlock>
+                    <TextBlock Text="{Binding ArchiveType}" />
+                  </StackPanel>
+                  <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="5">
+                    <Button Content="Build"
+                            Width="80"
+                            HorizontalAlignment="Center"
+                            HorizontalContentAlignment="Center"
+                            VerticalAlignment="Center"
+                            Click="Build_Click"/>
+                    <Button Content="Edit"
+                            Width="80"
+                            HorizontalAlignment="Center"
+                            HorizontalContentAlignment="Center"
+                            VerticalAlignment="Center"
+                            Click="Edit_Click"/>
+                  </StackPanel>
+                </DockPanel>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- New Archive Button -->
+    <Button Content="New Archive" Click="NewArchive_Click" HorizontalContentAlignment="Center" HorizontalAlignment="Center" Width="150" Margin="0,10,0,0"/>
+  </StackPanel>
+</Window>

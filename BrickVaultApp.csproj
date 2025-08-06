@@ -28,4 +28,10 @@
   <ItemGroup>
     <ProjectReference Include="..\BrickVault\BrickVault.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Controls\FSInput.axaml.cs">
+      <DependentUpon>FSInput.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
 </Project>
