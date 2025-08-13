@@ -13,7 +13,6 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace BrickVaultApp.ViewModels
 {
@@ -22,6 +21,8 @@ namespace BrickVaultApp.ViewModels
         public ObservableCollection<TreeNodeViewModel> Nodes { get; } = new ObservableCollection<TreeNodeViewModel>();
 
         public ObservableCollection<TreeNodeViewModel> SearchResults { get; } = new ObservableCollection<TreeNodeViewModel>();
+
+        public List<TreeNodeViewModel> Leaves = new List<TreeNodeViewModel>();
 
         public bool HasSearchResults => !string.IsNullOrWhiteSpace(SearchText);
 
@@ -47,11 +48,13 @@ namespace BrickVaultApp.ViewModels
             {
                 if (searchBoxText != value)
                 {
+                    string previousFilter = searchBoxText;
+
                     searchBoxText = value;
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(SearchText)));
                     PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasSearchResults)));
 
-                    FilterTreeView();
+                    FilterTreeView(previousFilter);
                 }
             }
         }
@@ -118,7 +121,7 @@ namespace BrickVaultApp.ViewModels
             }
         }
 
-        public void FilterTreeView()
+        public void FilterTreeView(string previousFilter) // Could do a lot better with this really
         {
             if (currentDatFile == null && currentDatFiles == null) return;
 
@@ -129,13 +132,33 @@ namespace BrickVaultApp.ViewModels
 
             string search = searchBoxText.ToLower();
 
-            foreach (var node in Flatten(Nodes))
+            bool requiresPaths = search.Contains('\\');
+
+            foreach (var node in Leaves)
             {
-                if (node.Children.Count == 0 && node.Path.Contains(search))
+                if (requiresPaths)
                 {
-                    SearchResults.Add(node);
+                    if (node.Path.Contains(search))
+                    {
+                        SearchResults.Add(node);
+                    }
+                }
+                else
+                {
+                    if (node.Title.Contains(search))
+                    {
+                        SearchResults.Add(node);
+                    }
                 }
             }
+
+            //foreach (var node in Flatten(Nodes))
+            //{
+            //    if (node.Children.Count == 0 && node.Path.Contains(search))
+            //    {
+            //        SearchResults.Add(node);
+            //    }
+            //}
         }
 
         private IEnumerable<TreeNodeViewModel> Flatten(IEnumerable<TreeNodeViewModel> nodes)
@@ -154,7 +177,7 @@ namespace BrickVaultApp.ViewModels
 
         public MainWindowViewModel()
         {
-            var message = new TreeNodeViewModel("Open a .DAT file to get started", "");
+            var message = new TreeNodeViewModel("Open a .DAT file to get started", null);
             message.IsEnabled = false;
             Nodes.Add(message);
         }
@@ -163,8 +186,13 @@ namespace BrickVaultApp.ViewModels
         {
             currentDatFile = null;
             currentDatFiles = null;
-            SearchText = "";
             Nodes.Clear();
+            Leaves.Clear();
+            SearchText = "";
+
+            GC.Collect(); // Required when switching between sets of files as the memory builds up too quickly
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
         }
 
         public void OpenDatFile(string datFileLocation)
@@ -175,29 +203,29 @@ namespace BrickVaultApp.ViewModels
 
             if (dat == null) return;
             
-            TreeNodeViewModel root = new TreeNodeViewModel("root", "");
+            TreeNodeViewModel root = new TreeNodeViewModel("root", null);
             foreach (var file in dat.Files)
             {
                 var current = root;
                 var parts = file.Path.TrimStart('\\').Split('\\');
 
-                string path = "";
-
-                foreach (var part in parts)
+                for (int i = 0; i < parts.Length; i++)
                 {
-                    string thisPath = path + part;
+                    string part = parts[i];
 
                     if (!current.Children.ContainsKey(part))
                     {
-                        current.Children[part] = new TreeNodeViewModel(part, thisPath);
+                        current.Children[part] = new TreeNodeViewModel(part, current);
+
+                        if (i == parts.Length - 1) // Last part, so it's a file
+                        {
+                            Leaves.Add(current.Children[part]);
+                            current.Children[part].Size = $"[{file.GetFormattedSize()}]";
+                            current.Children[part].Archive = "";
+                        }
                     }
                     current = current.Children[part];
-
-                    path = thisPath + "\\";
                 }
-
-                current.Size = $"[{file.GetFormattedSize()}]";
-                current.Archive = "";
             }
 
             foreach (var kvp in root.Children.OrderBy(kv => kv.Key))
@@ -210,11 +238,36 @@ namespace BrickVaultApp.ViewModels
             currentDatFile = dat;
         }
 
+        private void AddChildren(TreeNodeViewModel parentVM, FileTreeNode parentNode, DATFile archive)
+        {
+            foreach (var child in archive.FileTree.EnumerateChildren(parentNode))
+            {
+                if (!parentVM.Children.ContainsKey(child.Segment))
+                {
+                    TreeNodeViewModel newNode = new TreeNodeViewModel(child.Segment, parentVM);
+                    parentVM.Children[child.Segment] = newNode;
+
+                    if (!child.HasChildren)
+                    {
+                        Leaves.Add(newNode);
+                        newNode.Size = $"[{child.File.GetFormattedSize()}]";
+                        newNode.Archive = archive.FileName;
+                    }
+                }
+                var nextChild = parentVM.Children[child.Segment];
+
+                if (child.HasChildren)
+                {
+                    AddChildren(nextChild, child, archive);
+                }
+            }
+        }
+
         public void OpenFolder(string folderLocation)
         {
             Reset();
 
-            List<DATFile> files = new List<DATFile>();
+            List<DATFile> openedFiles = new List<DATFile>();
 
             foreach (var folderFile in Directory.GetFiles(folderLocation, "", AppSettings.Settings.OpenRecursively ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly))
             {
@@ -223,37 +276,50 @@ namespace BrickVaultApp.ViewModels
                 if (DATFile.Open(folderFile) is not DATFile validDat)
                     continue;
 
-                files.Add(validDat);
+                openedFiles.Add(validDat);
             }
 
-            TreeNodeViewModel root = new TreeNodeViewModel("root", "");
+            StageTimer.StartStage("Build tree");
 
-            foreach (var dat in files)
+            TreeNodeViewModel root = new TreeNodeViewModel("root", null);
+
+            foreach (var dat in openedFiles)
             {
-                foreach (var file in dat.Files)
+                if (dat.FileTree != null)
                 {
-                    var current = root;
-                    var parts = file.Path.TrimStart('\\').Split('\\');
+                    var rootNode = dat.FileTree.Root;
 
-                    string path = "";
-
-                    foreach (var part in parts)
+                    AddChildren(root, rootNode, dat);
+                }
+                else
+                {
+                    foreach (var file in dat.Files)
                     {
-                        string thisPath = path + part;
+                        var current = root;
+                        var parts = file.Path.TrimStart('\\').Split('\\');
 
-                        if (!current.Children.ContainsKey(part))
+                        for (int i = 0; i < parts.Length; i++)
                         {
-                            current.Children[part] = new TreeNodeViewModel(part, thisPath);
+                            string part = parts[i];
+
+                            if (!current.Children.ContainsKey(part))
+                            {
+                                current.Children[part] = new TreeNodeViewModel(part, current);
+
+                                if (i == parts.Length - 1) // Last part, so it's a file
+                                {
+                                    Leaves.Add(current.Children[part]);
+                                    current.Children[part].Size = $"[{file.GetFormattedSize()}]";
+                                    current.Children[part].Archive = dat.FileName;
+                                }
+                            }
+                            current = current.Children[part];
                         }
-                        current = current.Children[part];
-
-                        path = thisPath + "\\";
                     }
-
-                    current.Size = $"[{file.GetFormattedSize()}]";
-                    current.Archive = Path.GetFileNameWithoutExtension(dat.FileLocation);
                 }
             }
+
+            StageTimer.StartStage("Build viewmodels");
 
             foreach (var kvp in root.Children.OrderBy(kv => kv.Key))
             {
@@ -262,7 +328,9 @@ namespace BrickVaultApp.ViewModels
                 Nodes.Add(child);
             }
 
-            currentDatFiles = files;
+            StageTimer.StopStage();
+
+            currentDatFiles = openedFiles;
         }
 
         public async Task ExtractSelection(List<TreeNodeViewModel> selected, string outputLocation, Window window)
@@ -278,8 +346,32 @@ namespace BrickVaultApp.ViewModels
             {
                 dict.Add(dat, new List<ArchiveFile>());
             }
-
+            
             int totalFiles = 0;
+
+            var patch = new List<DATFile>();
+            var patchstream = new List<DATFile>();
+            var stream = new List<DATFile>();
+            var game = new List<DATFile>();
+
+            foreach (var dat in currentDatFiles)
+            {
+                var name = dat.FileName.ToUpper();
+                if (name.Contains("PATCHSTREAM"))
+                    patchstream.Add(dat);
+                else if (name.Contains("PATCH"))
+                    patch.Add(dat);
+                else if (name.Contains("STREAM"))
+                    stream.Add(dat);
+                else
+                    game.Add(dat);
+            }
+
+            var reordered = new List<DATFile>(patch.Count + stream.Count + game.Count);
+            reordered.AddRange(patch);
+            reordered.AddRange(patchstream);
+            reordered.AddRange(stream);
+            reordered.AddRange(game);
 
             foreach (var selection in selected)
             {
@@ -291,7 +383,7 @@ namespace BrickVaultApp.ViewModels
 
                     Dictionary<string, bool> handledFiles = new(); // not my finest piece of work
 
-                    foreach (var dat in currentDatFiles)
+                    foreach (var dat in reordered)
                     {
                         foreach (ArchiveFile file in dat.Files)
                         {
@@ -310,7 +402,7 @@ namespace BrickVaultApp.ViewModels
                 else
                 { // selection is file
                     bool justBreak = false;
-                    foreach (var dat in currentDatFiles)
+                    foreach (var dat in reordered)
                     {
                         if (justBreak) break;
                         foreach (ArchiveFile file in dat.Files)

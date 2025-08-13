@@ -6,6 +6,7 @@ using Avalonia.Platform;
 using Avalonia.Threading;
 using BrickVault;
 using BrickVaultApp.ViewModels;
+using System;
 using System.Diagnostics;
 
 namespace BrickVaultApp;
@@ -23,6 +24,19 @@ public partial class ProgressWindow : Window
 
             vm.OnWindowClose();
         };
+
+        this.KeyDown += ProgressWindow_KeyDown;
+    }
+
+    private void ProgressWindow_KeyDown(object? sender, Avalonia.Input.KeyEventArgs e)
+    {
+        if (DataContext is not ProgressWindowViewModel vm)
+            return;
+
+        if (vm.HasComplete && (e.Key == Avalonia.Input.Key.Space || e.Key == Avalonia.Input.Key.Escape))
+        {
+            Close();
+        }
     }
 
     private void OnInteractClick(object? sender, RoutedEventArgs e)

@@ -84,14 +84,17 @@ namespace BrickVaultApp
             }
         }
 
-        private async Task<string?> CreateFolderModal(string title)
+        private async Task<string?> CreateFolderModal(string title, string startLocation = null)
         {
             if (StorageProvider == null)
                 throw new Exception("Unable to access filesystem");
 
+            var startPath = await StorageProvider.TryGetFolderFromPathAsync(startLocation);
+
             var folder = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
             {
                 Title = title,
+                SuggestedStartLocation = startPath,
                 AllowMultiple = false,
             });
 
@@ -102,11 +105,15 @@ namespace BrickVaultApp
 
         private async void MenuItem_Open_Folder_Click(object? sender, RoutedEventArgs e)
         {
-            string? selectedPath = await CreateFolderModal("Select Game Folder");
+            string? selectedPath = await CreateFolderModal("Select Game Folder", AppSettings.Settings.LastOpenFolderDirectory);
             if (selectedPath == null) return;
+            AppSettings.Settings.LastOpenFolderDirectory = selectedPath;
 
             MainWindowViewModel vm = (MainWindowViewModel)DataContext!;
+
             vm.OpenFolder(selectedPath);
+
+            StageTimer.PrintReport();
 
             Title = $"{AppSettings.AppString} | Viewing {vm.OpenFilesCount} files in {selectedPath}";
         }
@@ -164,8 +171,9 @@ namespace BrickVaultApp
             string? outputLocation = "";
             if (vm.ExtractToLocation)
             {
-                outputLocation = await CreateFolderModal("Choose output location");
+                outputLocation = await CreateFolderModal("Choose output location", AppSettings.Settings.LastExtractDirectory);
                 if (outputLocation == null) return;
+                AppSettings.Settings.LastExtractDirectory = outputLocation;
             }
 
             await vm.ExtractSelection(selection, outputLocation, this);

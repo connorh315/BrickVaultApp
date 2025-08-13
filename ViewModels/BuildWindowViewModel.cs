@@ -13,11 +13,8 @@ namespace BrickVaultApp.ViewModels
     {
         public ObservableCollection<BuildArchiveViewModel> BuildArchives { get; set; }
 
-        public void AddToBuildList(BuildArchiveViewModel buildVM)
+        private void SortBuildList()
         {
-            BuildArchives.Add(buildVM);
-
-            // Reorder collection by BuildDate descending
             var sorted = BuildArchives.OrderByDescending(b => b.BuildDate).ToList();
 
             BuildArchives.Clear();
@@ -25,6 +22,13 @@ namespace BrickVaultApp.ViewModels
             {
                 BuildArchives.Add(item);
             }
+        }
+
+        public void AddToBuildList(BuildArchiveViewModel buildVM)
+        {
+            BuildArchives.Add(buildVM);
+
+            SortBuildList();
 
             BuildList.Serialize(BuildArchives);
         }
@@ -39,6 +43,8 @@ namespace BrickVaultApp.ViewModels
         public BuildWindowViewModel()
         {
             BuildArchives = BuildList.Deserialize();
+
+            SortBuildList();
         }
 
         public async Task AddToBuildSettings(Window window)

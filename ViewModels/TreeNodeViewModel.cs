@@ -1,4 +1,6 @@
 ﻿using Avalonia.Controls.Converters;
+using BrickVault;
+using BrickVault.Types;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -12,23 +14,40 @@ namespace BrickVaultApp.ViewModels
 {
     public class TreeNodeViewModel : INotifyPropertyChanged
     {
-        public string Title { get; set; }
+        public virtual string Title { get; set; }
 
         private string size;
-        public string Size
+        public virtual string Size
         {
             get => size;
             set => size = value;
         }
 
         private string archive;
-        public string Archive
+        public virtual string Archive
         {
             get => archive;
             set => archive = value;
         }
 
-        public string Path { get; set; }
+        public TreeNodeViewModel Parent;
+
+        public virtual string Path
+        {
+            get
+            {
+                var stack = new Stack<string>();
+                var node = this;
+
+                while (node.Parent != null) // On the root
+                {
+                    stack.Push(node.Title);
+                    node = node.Parent;
+                }
+
+                return string.Join("\\", stack);
+            }
+        }
 
         public Dictionary<string, TreeNodeViewModel> Children { get; set; } = new();
 
@@ -80,13 +99,15 @@ namespace BrickVaultApp.ViewModels
 
         public bool HasPlaceholder => SubNodes.Count == 1 && SubNodes[0] is PlaceholderViewModel;
 
-        public TreeNodeViewModel(string title, string path)
+        public TreeNodeViewModel(string title, TreeNodeViewModel parent)
         {
             Title = title;
-            Path = path;
+            Parent = parent;
         }
 
-        private void LoadChildren()
+        internal TreeNodeViewModel() { }
+
+        protected virtual void LoadChildren()
         {
             SubNodes.Clear();
             foreach (var kvp in Children.OrderBy(kv => kv.Key))
@@ -97,7 +118,7 @@ namespace BrickVaultApp.ViewModels
             }
         }
 
-        public void Prepare()
+        public virtual void Prepare()
         {
             if (Children.Count > 0)
                 SubNodes.Add(new PlaceholderViewModel());
@@ -109,6 +130,6 @@ namespace BrickVaultApp.ViewModels
 
     public class PlaceholderViewModel : TreeNodeViewModel
     {
-        public PlaceholderViewModel() : base("Loading...", "") { }
+        public PlaceholderViewModel() : base("Loading...", null) { }
     }
 }

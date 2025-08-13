@@ -11,7 +11,7 @@ namespace BrickVaultApp
     public class AppSettings : INotifyPropertyChanged
     {
         public const string AppName = "BrickVault";
-        public const string Version = "1.1.0";
+        public const string Version = "1.1.1";
 
         public static string AppString => $"{AppName} {Version}";
 
@@ -46,6 +46,42 @@ namespace BrickVaultApp
                 if (openRecursively == value) return;
                 openRecursively = value;
                 OnPropertyChanged(nameof(OpenRecursively));
+            }
+        }
+
+        private bool extractPatchFirst = false;
+        public bool ExtractPatchFirst
+        {
+            get => extractPatchFirst;
+            set
+            {
+                if (extractPatchFirst == value) return;
+                extractPatchFirst = value;
+                OnPropertyChanged(nameof(ExtractPatchFirst));
+            }
+        }
+
+        private string lastOpenFolderDirectory = string.Empty;
+        public string LastOpenFolderDirectory
+        {
+            get => lastOpenFolderDirectory;
+            set
+            {
+                if (lastOpenFolderDirectory == value) return;
+                lastOpenFolderDirectory = value;
+                OnPropertyChanged(nameof(LastOpenFolderDirectory));
+            }
+        }
+
+        private string lastExtractDirectory = string.Empty;
+        public string LastExtractDirectory
+        {
+            get => lastExtractDirectory;
+            set
+            {
+                if (lastExtractDirectory == value) return;
+                lastExtractDirectory = value;
+                OnPropertyChanged(nameof(LastExtractDirectory));
             }
         }
 
