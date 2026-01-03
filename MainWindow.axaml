@@ -60,6 +60,17 @@
           <Setter Property="IsExpanded" Value="{Binding IsExpanded}"/>
           <Setter Property="IsEnabled" Value="{Binding IsEnabled}"/>
           <Setter Property="IsVisible" Value="{Binding IsVisible}"/>
+
+          <Setter Property="ContextMenu">
+            <ContextMenu>
+              <MenuItem Header="{Binding OpenWith}" IsVisible="{Binding IsOpenWithVisible}"
+              Command="{Binding
+                  $parent[Window].DataContext.OpenWithCommand}"
+              CommandParameter="{Binding
+                  $parent[TreeViewItem].DataContext}" />
+
+            </ContextMenu>
+          </Setter>
         </Style>
       </TreeView.Styles>
     </TreeView>

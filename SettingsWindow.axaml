@@ -2,7 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="400"
+        mc:Ignorable="d" d:DesignWidth="420" d:DesignHeight="400"
+        MaxHeight="600"
         x:Class="BrickVaultApp.SettingsWindow"
         Title="Settings"
         CanResize="False"
@@ -14,9 +15,38 @@
     </Border>
 
     <ScrollViewer>
-      <StackPanel Margin="10" Spacing="8">
+      <StackPanel Margin="10" Spacing="8" Width="400">
         <CheckBox Content="Should log progress to command line" IsChecked="{Binding Settings.ShouldLogProgressToCommandLine}" />
         <CheckBox Content="Should search in subfolders for DAT files" IsChecked="{Binding Settings.OpenRecursively}" />
+        <CheckBox Content="Should remember paths" IsChecked="{Binding Settings.ShouldRememberPaths}" />
+        <Separator />
+        <TextBlock Text="Open With" HorizontalAlignment="Center" />
+        <ItemsControl ItemsSource="{Binding Settings.OpenWithApps}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Grid ColumnDefinitions="120,16,*,16,Auto" Margin="0,0,0,8">
+                <TextBox Grid.Column="0"
+                         Text="{Binding Extensions}" 
+                         Watermark="CD/CPD/AS" 
+                         ToolTip.Tip="Extension(s), separated by '/'" />
+
+                <FileInput Grid.Column="2"
+                           Value="{Binding ApplicationPath}"
+                           Mode="OpenFile"
+                           Extension="exe"/>
+
+                <Button Grid.Column="4"
+                        Content="X"
+                        Foreground="Red"
+                        Command="{Binding DataContext.RemoveOpenWithCommand,
+                          RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                        CommandParameter="{Binding}" />
+              </Grid>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <Button Content="+ Open With" HorizontalAlignment="Center" Click="NewOpenWithEntry_Click"/>
+        <Separator />
       </StackPanel>
     </ScrollViewer>
   </DockPanel>

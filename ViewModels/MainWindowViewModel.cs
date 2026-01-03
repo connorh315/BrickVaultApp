@@ -1,18 +1,23 @@
 ﻿using Avalonia.Controls;
 using Avalonia.Markup.Xaml.Templates;
 using Avalonia.Remote.Protocol;
+using Avalonia.Styling;
 using BrickVault;
 using BrickVault.Types;
+using BrickVaultApp.Settings;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Data;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace BrickVaultApp.ViewModels
 {
@@ -180,6 +185,14 @@ namespace BrickVaultApp.ViewModels
             var message = new TreeNodeViewModel("Open a .DAT file to get started", null);
             message.IsEnabled = false;
             Nodes.Add(message);
+
+            OpenWithCommand = new DelegateCommand(
+                p => OpenWith((TreeNodeViewModel)p),
+                (p) =>
+                {
+                    Console.WriteLine("Called!");
+                    return p is TreeNodeViewModel;
+                });
         }
 
         public void Reset()
@@ -291,32 +304,32 @@ namespace BrickVaultApp.ViewModels
 
                     AddChildren(root, rootNode, dat);
                 }
-                else
-                {
-                    foreach (var file in dat.Files)
-                    {
-                        var current = root;
-                        var parts = file.Path.TrimStart('\\').Split('\\');
+                //else
+                //{
+                //    foreach (var file in dat.Files)
+                //    {
+                //        var current = root;
+                //        var parts = file.Path.TrimStart('\\').Split('\\');
 
-                        for (int i = 0; i < parts.Length; i++)
-                        {
-                            string part = parts[i];
+                //        for (int i = 0; i < parts.Length; i++)
+                //        {
+                //            string part = parts[i];
 
-                            if (!current.Children.ContainsKey(part))
-                            {
-                                current.Children[part] = new TreeNodeViewModel(part, current);
+                //            if (!current.Children.ContainsKey(part))
+                //            {
+                //                current.Children[part] = new TreeNodeViewModel(part, current);
 
-                                if (i == parts.Length - 1) // Last part, so it's a file
-                                {
-                                    Leaves.Add(current.Children[part]);
-                                    current.Children[part].Size = $"[{file.GetFormattedSize()}]";
-                                    current.Children[part].Archive = dat.FileName;
-                                }
-                            }
-                            current = current.Children[part];
-                        }
-                    }
-                }
+                //                if (i == parts.Length - 1) // Last part, so it's a file
+                //                {
+                //                    Leaves.Add(current.Children[part]);
+                //                    current.Children[part].Size = $"[{file.GetFormattedSize()}]";
+                //                    current.Children[part].Archive = dat.FileName;
+                //                }
+                //            }
+                //            current = current.Children[part];
+                //        }
+                //    }
+                //}
             }
 
             StageTimer.StartStage("Build viewmodels");
@@ -333,139 +346,264 @@ namespace BrickVaultApp.ViewModels
             currentDatFiles = openedFiles;
         }
 
-        public async Task ExtractSelection(List<TreeNodeViewModel> selected, string outputLocation, Window window)
+        private static IReadOnlyList<DATFile> OrderDatFiles(IEnumerable<DATFile> dats)
         {
-            //List<ArchiveFile> files = new List<ArchiveFile>();
-            
-            Dictionary<DATFile, List<ArchiveFile>> dict = new();
-
-            if (currentDatFile != null)
-                currentDatFiles = new List<DATFile> { currentDatFile };
-
-            foreach (var dat in currentDatFiles)
-            {
-                dict.Add(dat, new List<ArchiveFile>());
-            }
-            
-            int totalFiles = 0;
-
-            var patch = new List<DATFile>();
-            var patchstream = new List<DATFile>();
-            var stream = new List<DATFile>();
-            var game = new List<DATFile>();
-
-            foreach (var dat in currentDatFiles)
-            {
-                var name = dat.FileName.ToUpper();
-                if (name.Contains("PATCHSTREAM"))
-                    patchstream.Add(dat);
-                else if (name.Contains("PATCH"))
-                    patch.Add(dat);
-                else if (name.Contains("STREAM"))
-                    stream.Add(dat);
-                else
-                    game.Add(dat);
-            }
-
-            var reordered = new List<DATFile>(patch.Count + stream.Count + game.Count);
-            reordered.AddRange(patch);
-            reordered.AddRange(patchstream);
-            reordered.AddRange(stream);
-            reordered.AddRange(game);
-
-            foreach (var selection in selected)
-            {
-                string path = "\\" + selection.Path;
-
-                if (selection.Children.Count > 0)
-                { // selection is folder
-                    path += "\\";
-
-                    Dictionary<string, bool> handledFiles = new(); // not my finest piece of work
-
-                    foreach (var dat in reordered)
-                    {
-                        foreach (ArchiveFile file in dat.Files)
-                        {
-                            if (file.Path.StartsWith(path))
-                            {
-                                if (handledFiles.ContainsKey(file.Path)) continue;
-
-                                dict[dat].Add(file);
-                                handledFiles[file.Path] = true;
-                                totalFiles++;
-                                continue;
-                            }
-                        }
-                    }
-                }
-                else
-                { // selection is file
-                    bool justBreak = false;
-                    foreach (var dat in reordered)
-                    {
-                        if (justBreak) break;
-                        foreach (ArchiveFile file in dat.Files)
-                        {
-                            if (file.Path == path)
-                            {
-                                dict[dat].Add(file);
-                                justBreak = true;
-                                totalFiles++;
-                                break;
-                            }
-                        }
-                    }
-                }
-            }
-
-            CancellationTokenSource source = new CancellationTokenSource();
-
-            ThreadedExtractionCtx threadedCtx = new ThreadedExtractionCtx(1, totalFiles, source);
-            threadedCtx.DisplayOutput = AppSettings.Settings.ShouldLogProgressToCommandLine;
-            var progressWindow = new ProgressWindow(threadedCtx);
-
-            if (outputLocation == "")
-                outputLocation = Path.GetDirectoryName(currentDatFiles[0].FileLocation);
-
-            foreach (var dat in currentDatFiles)
-            {
-                if (dict[dat].Count > 0)
+            return dats
+                .OrderBy(dat =>
                 {
-                    dat.ExtractFiles(dict[dat].ToArray(), outputLocation, threadedCtx);
+                    var name = dat.FileName.ToUpperInvariant();
+                    if (name.Contains("PATCHSTREAM")) return 0;
+                    if (name.Contains("PATCH")) return 1;
+                    if (name.Contains("STREAM")) return 2;
+                    return 3;
+                })
+                .ToList();
+        }
+
+        private Dictionary<DATFile, List<ArchiveFile>> BuildExtractionMap(IEnumerable<TreeNodeViewModel> selected, IEnumerable<DATFile> dats)
+        {
+            var ordered = OrderDatFiles(dats);
+            var result = ordered.ToDictionary(d => d, _ => new List<ArchiveFile>());
+            var seenPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var node in selected)
+            {
+                var targetPath = node.Path.TrimStart('\\');
+
+                foreach (var dat in ordered)
+                {
+                    foreach (var file in dat.Files)
+                    {
+                        var filePath = file.Path.TrimStart('\\');
+
+                        bool match =
+                            node.Children.Count > 0
+                                ? filePath.StartsWith(targetPath + "\\")
+                                : filePath == targetPath;
+
+                        if (!match || !seenPaths.Add(filePath))
+                            continue;
+
+                        result[dat].Add(file);
+                    }
                 }
             }
 
-            await progressWindow.ShowDialog(window);
+            return result;
         }
+
+        private async Task RunExtraction(
+        Dictionary<DATFile, List<ArchiveFile>> plan,
+        string outputLocation,
+        Window window)
+            {
+                int totalFiles = plan.Sum(p => p.Value.Count);
+                if (totalFiles == 0)
+                {
+                    Console.WriteLine("Could not locate files!");
+                    return;
+                }
+
+                var cts = new CancellationTokenSource();
+                var ctx = new ThreadedExtractionCtx(1, totalFiles, cts)
+                {
+                    DisplayOutput = AppSettings.Settings.ShouldLogProgressToCommandLine
+                };
+
+                var progressWindow = new ProgressWindow(ctx);
+
+                foreach (var (dat, files) in plan)
+                {
+                    if (files.Count > 0)
+                        dat.ExtractFiles(files.ToArray(), outputLocation, ctx);
+                }
+
+                await progressWindow.ShowDialog(window);
+            }
+
+        public async Task ExtractSelection(
+        List<TreeNodeViewModel> selected,
+        string outputLocation,
+        Window window)
+            {
+                var dats = currentDatFile != null
+                    ? new[] { currentDatFile }
+                    : currentDatFiles.ToArray();
+
+                if (dats == null || dats.Length == 0)
+                    return;
+
+                outputLocation ??= Path.GetDirectoryName(dats[0].FileLocation);
+
+                var plan = BuildExtractionMap(selected, dats);
+                await RunExtraction(plan, outputLocation, window);
+            }
 
         public async Task ExtractAll(string outputLocation, Window window)
         {
             if (currentDatFile != null)
             {
-                CancellationTokenSource source = new CancellationTokenSource();
+                outputLocation ??= Path.GetDirectoryName(currentDatFile.FileLocation);
 
-                ThreadedExtractionCtx threadedCtx = new ThreadedExtractionCtx(1, currentDatFile.Files.Length, source);
-                threadedCtx.DisplayOutput = AppSettings.Settings.ShouldLogProgressToCommandLine;
-                var progressWindow = new ProgressWindow(threadedCtx);
+                var plan = new Dictionary<DATFile, List<ArchiveFile>>
+                {
+                    [currentDatFile] = currentDatFile.Files.ToList()
+                };
 
-                if (outputLocation == "")
-                    outputLocation = Path.GetDirectoryName(currentDatFile.FileLocation);
-
-                currentDatFile.ExtractAll(outputLocation, threadedCtx);
-
-                await progressWindow.ShowDialog(window);
+                await RunExtraction(plan, outputLocation, window);
+                return;
             }
-            else if (currentDatFiles != null)
+
+            if (currentDatFiles != null)
             {
-                if (outputLocation == "")
-                    outputLocation = Path.GetDirectoryName(currentDatFiles[0].FileLocation);
-
-                var multiProgressWindow = new MultiProgressWindow(currentDatFiles, outputLocation);
-
-                await multiProgressWindow.ShowDialog(window);
+                outputLocation ??= Path.GetDirectoryName(currentDatFiles[0].FileLocation);
+                await new MultiProgressWindow(currentDatFiles, outputLocation)
+                    .ShowDialog(window);
             }
         }
+
+
+        //public async Task ExtractSelection(List<TreeNodeViewModel> selected, string outputLocation, Window window)
+        //{
+        //    //List<ArchiveFile> files = new List<ArchiveFile>();
+
+        //    Dictionary<DATFile, List<ArchiveFile>> dict = new();
+
+        //    if (currentDatFile != null)
+        //        currentDatFiles = new List<DATFile> { currentDatFile };
+
+        //    foreach (var dat in currentDatFiles)
+        //    {
+        //        dict.Add(dat, new List<ArchiveFile>());
+        //    }
+
+        //    int totalFiles = 0;
+
+        //    var patch = new List<DATFile>();
+        //    var patchstream = new List<DATFile>();
+        //    var stream = new List<DATFile>();
+        //    var game = new List<DATFile>();
+
+        //    foreach (var dat in currentDatFiles)
+        //    {
+        //        var name = dat.FileName.ToUpper();
+        //        if (name.Contains("PATCHSTREAM"))
+        //            patchstream.Add(dat);
+        //        else if (name.Contains("PATCH"))
+        //            patch.Add(dat);
+        //        else if (name.Contains("STREAM"))
+        //            stream.Add(dat);
+        //        else
+        //            game.Add(dat);
+        //    }
+
+        //    var reordered = new List<DATFile>(patch.Count + patchstream.Count + stream.Count + game.Count);
+        //    reordered.AddRange(patch);
+        //    reordered.AddRange(patchstream);
+        //    reordered.AddRange(stream);
+        //    reordered.AddRange(game);
+
+        //    foreach (var selection in selected)
+        //    {
+        //        string path = selection.Path;
+
+        //        if (selection.Children.Count > 0)
+        //        { // selection is folder
+        //            path += "\\";
+
+        //            Dictionary<string, bool> handledFiles = new(); // not my finest piece of work
+
+        //            foreach (var dat in reordered)
+        //            {
+        //                foreach (ArchiveFile file in dat.Files)
+        //                {
+        //                    if (file.Path.TrimStart('\\').StartsWith(path))
+        //                    {
+        //                        if (handledFiles.ContainsKey(file.Path.TrimStart('\\'))) continue; // TODO: Remove!
+
+        //                        dict[dat].Add(file);
+        //                        handledFiles[file.Path.TrimStart('\\')] = true; // TODO: Remove!
+        //                        totalFiles++;
+        //                        continue;
+        //                    }
+        //                }
+        //            }
+        //        }
+        //        else
+        //        { // selection is file
+        //            bool justBreak = false;
+        //            foreach (var dat in reordered)
+        //            {
+        //                if (justBreak) break;
+        //                foreach (ArchiveFile file in dat.Files)
+        //                {
+        //                    if (file.Path.TrimStart('\\') == path)
+        //                    {
+        //                        dict[dat].Add(file);
+        //                        justBreak = true;
+        //                        totalFiles++;
+        //                        break;
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+
+        //    CancellationTokenSource source = new CancellationTokenSource();
+
+        //    ThreadedExtractionCtx threadedCtx = new ThreadedExtractionCtx(1, totalFiles, source);
+        //    threadedCtx.DisplayOutput = AppSettings.Settings.ShouldLogProgressToCommandLine;
+        //    var progressWindow = new ProgressWindow(threadedCtx);
+
+        //    if (outputLocation == "")
+        //        outputLocation = Path.GetDirectoryName(currentDatFiles[0].FileLocation);
+
+        //    bool workToDo = false;
+        //    foreach (var dat in currentDatFiles)
+        //    {
+        //        if (dict[dat].Count > 0)
+        //        {
+        //            workToDo = true;
+        //            dat.ExtractFiles(dict[dat].ToArray(), outputLocation, threadedCtx);
+        //        }
+        //    }
+
+        //    if (!workToDo)
+        //    {
+        //        Console.WriteLine("Could not locate files!");
+        //        return;
+        //    }
+
+        //    await progressWindow.ShowDialog(window);
+        //}
+
+        //public async Task ExtractAll(string outputLocation, Window window)
+        //{
+        //    if (currentDatFile != null)
+        //    {
+        //        CancellationTokenSource source = new CancellationTokenSource();
+
+        //        ThreadedExtractionCtx threadedCtx = new ThreadedExtractionCtx(1, currentDatFile.Files.Length, source);
+        //        threadedCtx.DisplayOutput = AppSettings.Settings.ShouldLogProgressToCommandLine;
+        //        var progressWindow = new ProgressWindow(threadedCtx);
+
+        //        if (outputLocation == "")
+        //            outputLocation = Path.GetDirectoryName(currentDatFile.FileLocation);
+
+        //        currentDatFile.ExtractAll(outputLocation, threadedCtx);
+
+        //        await progressWindow.ShowDialog(window);
+        //    }
+        //    else if (currentDatFiles != null)
+        //    {
+        //        if (outputLocation == "")
+        //            outputLocation = Path.GetDirectoryName(currentDatFiles[0].FileLocation);
+
+        //        var multiProgressWindow = new MultiProgressWindow(currentDatFiles, outputLocation);
+
+        //        await multiProgressWindow.ShowDialog(window);
+        //    }
+        //}
 
         public async void Build(Window window)
         {
@@ -547,6 +685,56 @@ namespace BrickVaultApp.ViewModels
 
                 Build(window);
             }
+        }
+
+        public ICommand OpenWithCommand { get; }
+
+        public void OpenWith(TreeNodeViewModel node)
+        {
+            string path = node.Path;
+            var app = AppSettings.Settings.GetAppForFile(path);
+            if (app is null || !File.Exists(app))
+            {
+                Console.WriteLine($"Error: Could not locate application on filesystem!");
+                return;
+            }
+
+            var tempDir = Path.Combine(Path.GetTempPath(), "BrickVault");
+            Directory.CreateDirectory(tempDir);
+
+            var tempFile = Path.Combine(
+                tempDir,
+                Guid.NewGuid().ToString("N") + Path.GetExtension(path));
+
+            var dats = currentDatFile != null
+                                ? new[] { currentDatFile }
+                                : currentDatFiles.ToArray();
+
+            if (dats == null || dats.Length == 0)
+                return;
+
+            string outputLocation = Path.GetDirectoryName(dats[0].FileLocation);
+
+            var plan = BuildExtractionMap(new List<TreeNodeViewModel>() { node }, dats);
+
+            foreach (var (dat, files) in plan)
+            {
+                if (files.Count == 0)
+                    continue;
+
+                using (RawFile actualFile = new RawFile(tempFile), datFile = new RawFile(dat.FileLocation))
+                {
+                    dat.ExtractFile(files[0], datFile, actualFile.fileStream);
+                }
+            }
+
+            // 4. Launch app
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = app,
+                Arguments = $"\"{tempFile}\"",
+                UseShellExecute = true
+            });
         }
     }
 }

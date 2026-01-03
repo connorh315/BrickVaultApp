@@ -1,6 +1,7 @@
 ﻿using Avalonia.Controls.Converters;
 using BrickVault;
 using BrickVault.Types;
+using BrickVaultApp.Settings;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -48,6 +49,10 @@ namespace BrickVaultApp.ViewModels
                 return string.Join("\\", stack);
             }
         }
+
+        public bool IsOpenWithVisible => AppSettings.Settings.GetAppForFile(Title) != null;
+
+        public string OpenWith => $"Open with {System.IO.Path.GetFileNameWithoutExtension(AppSettings.Settings.GetAppForFile(Title))}";
 
         public Dictionary<string, TreeNodeViewModel> Children { get; set; } = new();
 

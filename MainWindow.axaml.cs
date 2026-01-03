@@ -18,6 +18,7 @@ using Avalonia.Input;
 using MsBox.Avalonia;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using BrickVaultApp.Settings;
 
 namespace BrickVaultApp
 {

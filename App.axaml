@@ -12,6 +12,7 @@
       <ResourceDictionary.MergedDictionaries>
         <ResourceInclude Source="/Controls/Input.axaml"/>
         <ResourceInclude Source="/Controls/FSInput.axaml"/>
+        <ResourceInclude Source="/Controls/FileInput.axaml"/>
       </ResourceDictionary.MergedDictionaries>
     </ResourceDictionary>
   </Application.Resources>

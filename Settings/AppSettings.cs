@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace BrickVaultApp
+namespace BrickVaultApp.Settings
 {
     public class AppSettings : INotifyPropertyChanged
     {
@@ -49,6 +50,18 @@ namespace BrickVaultApp
             }
         }
 
+        private bool shouldRememberPaths = false;
+        public bool ShouldRememberPaths
+        {
+            get => shouldRememberPaths;
+            set
+            {
+                if (shouldRememberPaths == value) return;
+                shouldRememberPaths = value;
+                OnPropertyChanged(nameof(ShouldRememberPaths));
+            }
+        }
+
         private bool extractPatchFirst = false;
         public bool ExtractPatchFirst
         {
@@ -70,6 +83,8 @@ namespace BrickVaultApp
                 if (lastOpenFolderDirectory == value) return;
                 lastOpenFolderDirectory = value;
                 OnPropertyChanged(nameof(LastOpenFolderDirectory));
+                if (shouldRememberPaths)
+                    Save();
             }
         }
 
@@ -82,15 +97,51 @@ namespace BrickVaultApp
                 if (lastExtractDirectory == value) return;
                 lastExtractDirectory = value;
                 OnPropertyChanged(nameof(LastExtractDirectory));
+                if (shouldRememberPaths)
+                    Save();
             }
         }
 
+        public ObservableCollection<OpenWithEntry> OpenWithApps { get; } = new();
+
+        public string? GetAppForFile(string file)
+        {
+            if (string.IsNullOrWhiteSpace(file))
+                return null;
+
+            var fileLower = file.ToLowerInvariant();
+
+            foreach (var entry in OpenWithApps)
+            {
+                if (string.IsNullOrWhiteSpace(entry.Extensions))
+                    continue;
+
+                foreach (var ext in entry.Extensions.Split('/', StringSplitOptions.RemoveEmptyEntries))
+                {
+                    var normalizedExt = Normalize(ext);
+
+                    if (fileLower.EndsWith("." + normalizedExt, StringComparison.OrdinalIgnoreCase))
+                        return entry.ApplicationPath;
+                }
+            }
+
+            return null;
+        }
+
+        private static string Normalize(string ext) =>
+            ext.Trim().TrimStart('.').ToLowerInvariant();
+
         public void Save()
         {
+            if (DoNotSave) return;
+
             var lines = new List<string>();
 
             foreach (var prop in typeof(AppSettings).GetProperties())
             {
+                if (prop.Name == nameof(OpenWithApps))
+                    continue;
+
                 if (prop.CanRead)
                 {
                     var value = prop.GetValue(this)?.ToString() ?? string.Empty;
@@ -98,41 +149,74 @@ namespace BrickVaultApp
                 }
             }
 
+            lines.Add("");
+            lines.Add("[OpenWith]");
+
+            foreach (var entry in OpenWithApps)
+                lines.Add($"{entry.Extensions}={entry.ApplicationPath}");
+
             File.WriteAllLines(settingsFile, lines);
         }
 
+        private static bool DoNotSave = false;
+
         public static AppSettings Load()
         {
-            AppSettings settings = new AppSettings();
+            DoNotSave = true;
 
-            if (File.Exists(settingsFile))
+            var settings = new AppSettings();
+
+            if (!File.Exists(settingsFile))
+                return settings;
+
+            bool inOpenWith = false;
+
+            foreach (var line in File.ReadAllLines(settingsFile))
             {
-                string[] lines = File.ReadAllLines(settingsFile);
-                foreach (string line in lines)
+                if (string.IsNullOrWhiteSpace(line))
+                    continue;
+
+                if (line == "[OpenWith]")
+                {
+                    inOpenWith = true;
+                    continue;
+                }
+
+                if (!inOpenWith)
                 {
                     var parts = line.Split('=', 2);
                     if (parts.Length != 2) continue;
 
-                    string name = parts[0].Trim();
-                    string value = parts[1].Trim();
-
-                    var prop = typeof(AppSettings).GetProperty(name);
-                    if (prop != null && prop.CanWrite)
+                    var prop = typeof(AppSettings).GetProperty(parts[0]);
+                    if (prop?.CanWrite == true)
                     {
                         try
                         {
-                            var convertedValue = TypeDescriptor.GetConverter(prop.PropertyType).ConvertFromString(value);
-                            prop.SetValue(settings, convertedValue);
+                            var value = TypeDescriptor
+                                .GetConverter(prop.PropertyType)
+                                .ConvertFromString(parts[1]);
+                            prop.SetValue(settings, value);
                         }
-                        catch
-                        {
-                            // Ignore or log invalid setting
-                        }
+                        catch { }
                     }
+                }
+                else
+                {
+                    var parts = line.Split('=', 2);
+                    if (parts.Length != 2) continue;
+
+                    settings.OpenWithApps.Add(new OpenWithEntry
+                    {
+                        Extensions = parts[0],
+                        ApplicationPath = parts[1]
+                    });
                 }
             }
 
+            DoNotSave = false;
+
             return settings;
         }
+
     }
 }
