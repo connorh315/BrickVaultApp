@@ -1,29 +1,53 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using System;
 
 namespace BrickVaultApp;
 
+[PseudoClasses(":error")]
 public class Input : TemplatedControl
 {
 
     /// <summary>
     /// InputLabel StyledProperty definition
     /// </summary>
-    public static readonly StyledProperty<string> InputLabelProperty =
-        AvaloniaProperty.Register<Input, string>(nameof(InputLabel), "Input:");
+    public static readonly StyledProperty<string> LabelProperty =
+        AvaloniaProperty.Register<Input, string>(nameof(Label), null);
 
     /// <summary>
     /// Gets or sets the InputLabel property. This StyledProperty 
     /// indicates ....
     /// </summary>
-    public string InputLabel
+    public string Label
     {
-        get => this.GetValue(InputLabelProperty);
-        set => SetValue(InputLabelProperty, value);
+        get => this.GetValue(LabelProperty);
+        set => SetValue(LabelProperty, value);
     }
+
+    public static readonly StyledProperty<bool> RequiredProperty =
+    AvaloniaProperty.Register<Input, bool>(
+        nameof(Required),
+        defaultValue: false);
+
+    public bool Required
+    {
+        get => GetValue(RequiredProperty);
+        set => SetValue(RequiredProperty, value);
+    }
+
+    public static readonly StyledProperty<string?> WatermarkProperty =
+    AvaloniaProperty.Register<Input, string?>(
+        nameof(Watermark));
+
+    public string? Watermark
+    {
+        get => GetValue(WatermarkProperty);
+        set => SetValue(WatermarkProperty, value);
+    }
+
 
     private string _value = "";
 
@@ -41,19 +65,21 @@ public class Input : TemplatedControl
         {
             if (value == _value) return;
 
+            SetError(value == string.Empty && Required);
+
             if (NumericValue && !string.IsNullOrEmpty(value))
             {
                 if (FloatValue)
                 {
                     // Allow float input
                     if (!float.TryParse(value, out _))
-                        throw new DataValidationException("Numeric value only");
+                        SetError(true);
                 }
                 else
                 {
                     // Only allow integer input
                     if (!int.TryParse(value, out _))
-                        throw new DataValidationException("Integer input only");
+                        SetError(true);
                 }
             }
 
@@ -105,10 +131,9 @@ public class Input : TemplatedControl
     {
         if (sender is not TextBox textbox) return;
 
-        // Basically, this forces the input to be valid, either by using the last appropriate value, or best case scenario it just updates back to itself again.
-        string original = Value;
-        Value = "00000";
-        Value = original;
+        if (string.IsNullOrEmpty(Value))
+            SetError(true);
+
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -117,5 +142,14 @@ public class Input : TemplatedControl
 
         var tb = e.NameScope.Find<TextBox>("PART_Textbox");
         tb.LostFocus += TextBox_LostFocus;
+    }
+
+    private bool _hasError = false;
+
+    private void SetError(bool error)
+    {
+        if (!Required) return;
+        _hasError = error;
+        PseudoClasses.Set(":error", error);
     }
 }

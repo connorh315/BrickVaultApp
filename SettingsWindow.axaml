@@ -24,16 +24,19 @@
         <ItemsControl ItemsSource="{Binding Settings.OpenWithApps}">
           <ItemsControl.ItemTemplate>
             <DataTemplate>
-              <Grid ColumnDefinitions="120,16,*,16,Auto" Margin="0,0,0,8">
-                <TextBox Grid.Column="0"
-                         Text="{Binding Extensions}" 
-                         Watermark="CD/CPD/AS" 
-                         ToolTip.Tip="Extension(s), separated by '/'" />
+              <Grid ColumnDefinitions="100,12,*,12,Auto" Margin="0,0,0,8">
+                <Input Grid.Column="0"
+                        Value="{Binding Extensions}" 
+                        Watermark="CD/CPD/AS" 
+                        ToolTip.Tip="Extension(s), separated by '/'" 
+                        Required="True"
+                        Width="100"/>
 
                 <FileInput Grid.Column="2"
                            Value="{Binding ApplicationPath}"
                            Mode="OpenFile"
-                           Extension="exe"/>
+                           Extension="exe"
+                           Required="True"/>
 
                 <Button Grid.Column="4"
                         Content="X"

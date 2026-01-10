@@ -23,6 +23,26 @@ namespace BrickVaultApp.Settings
             set { applicationPath = value; OnPropertyChanged(nameof(ApplicationPath)); }
         }
 
+        public bool Validate()
+        {
+            bool valid = true;
+            if (string.IsNullOrEmpty(Extensions))
+            {
+                Extensions = " ";
+                Extensions = "";
+                valid = false;
+            }
+
+            if (string.IsNullOrEmpty(ApplicationPath))
+            {
+                ApplicationPath = " ";
+                ApplicationPath = "";
+                valid = false;
+            }
+
+            return valid;
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
         protected void OnPropertyChanged(string name)
             => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));

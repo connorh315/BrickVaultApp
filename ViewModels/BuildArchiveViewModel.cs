@@ -133,7 +133,7 @@ namespace BrickVaultApp.ViewModels
             }
         }
 
-        private DATVersion selectedVersion;
+        private DATVersion selectedVersion = DATVersion.V11;
         public DATVersion ArchiveVersion
         {
             get => selectedVersion;
@@ -247,6 +247,56 @@ namespace BrickVaultApp.ViewModels
                 ModAuthor = "";
                 ModVersion = "";
             }
+        }
+
+        public bool Validate()
+        {
+            bool valid = true;
+
+            if (string.IsNullOrEmpty(ArchiveFolder))
+            {
+                ArchiveFolder = " ";
+                ArchiveFolder = "";
+                valid = false;                
+            }
+
+            if (string.IsNullOrEmpty(ArchivePath))
+            {
+                ArchivePath = " ";
+                ArchivePath = "";
+                valid = false;
+            }
+
+            if (string.IsNullOrEmpty(FriendlyName))
+            {
+                FriendlyName = " ";
+                FriendlyName = "";
+                valid = false;
+            }
+
+            if (IsMod)
+            {
+                if (string.IsNullOrEmpty(ModName))
+                {
+                    ModName = " ";
+                    ModName = "";
+                    valid = false;
+                }
+                if (string.IsNullOrEmpty(ModAuthor))
+                {
+                    ModAuthor = " ";
+                    ModAuthor = "";
+                    valid = false;
+                }
+                if (string.IsNullOrEmpty(ModVersion))
+                {
+                    ModVersion = " ";
+                    ModVersion = "";
+                    valid = false;
+                }
+            }
+
+            return valid;
         }
     }
 }

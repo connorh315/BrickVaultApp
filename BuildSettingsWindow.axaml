@@ -3,12 +3,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="550"
+        MaxWidth="500"
+        Width="500"
         x:Class="BrickVaultApp.BuildSettingsWindow"
         Title="Build Archive Settings"
         CanResize="False"
         ShowInTaskbar="False"
         WindowStartupLocation="CenterOwner">
-  <StackPanel Margin="10" Spacing="10">
+  <StackPanel Margin="10" Spacing="10" Width="480">
     <TextBlock Text="Build Settings"
                FontSize="18"
                HorizontalAlignment="Center"
@@ -31,25 +33,26 @@
                       />
       </StackPanel>
     </Border>
-    <StackPanel Spacing="10" Margin="10">
-      <TextBlock IsVisible="{Binding !IsMod}" TextWrapping="Wrap">
-        <Run Text="WARNING:" Foreground="Red" />
-        <Run Text="Building game archives is experimental and will not always work. A later release will include a more robust system." />
-      </TextBlock>
-      <FSInput InputLabel="Input Folder" Value="{Binding ArchiveFolder, Mode=TwoWay}" IsFileInput="False" />
-      <FSInput InputLabel="Output File" Value="{Binding ArchivePath, Mode=TwoWay}" />
-      <Input InputLabel="Friendly Name" Value="{Binding FriendlyName, Mode=TwoWay}"/>
-      <Input InputLabel="Mod Name" Value="{Binding ModName, Mode=TwoWay}" IsVisible="{Binding IsMod}"/>
-      <Input InputLabel="Author" Value="{Binding ModAuthor, Mode=TwoWay}" IsVisible="{Binding IsMod}"/>
-      <Input InputLabel="Version" Value="{Binding ModVersion, Mode=TwoWay}" IsVisible="{Binding IsMod}"/>
-      <CheckBox Content="Build HDR File" IsChecked="{Binding BuildHDRFile, Mode=TwoWay}" />
-      <StackPanel Orientation="Horizontal">
-        <TextBlock Text="Archive Version" VerticalAlignment="Center" Width="150" />
-        <ComboBox ItemsSource="{Binding AvailableArchiveTypes}"
-            SelectedItem="{Binding ArchiveVersion, Mode=TwoWay}"
-            Width="150" />
-      </StackPanel>
+    
+    <TextBlock IsVisible="{Binding !IsMod}" TextWrapping="Wrap">
+      <Run Text="WARNING:" Foreground="Red" />
+      <Run Text="Building game archives is experimental and will not always work. A later release will include a more robust system." />
+    </TextBlock>
+      
+    <FileInput Label="Input Folder" Value="{Binding ArchiveFolder, Mode=TwoWay}" Mode="OpenFolder" Required="True"/>
+    <FileInput Label="Output File" Value="{Binding ArchivePath, Mode=TwoWay}" Mode="SaveFile" Required="True" Extension="dat"/>
+    <Input Label="Friendly Name" Value="{Binding FriendlyName, Mode=TwoWay}" Required="True"/>
+    <Input Label="Mod Name" Value="{Binding ModName, Mode=TwoWay}" IsVisible="{Binding IsMod}" Required="True"/>
+    <Input Label="Author" Value="{Binding ModAuthor, Mode=TwoWay}" IsVisible="{Binding IsMod}" Required="True"/>
+    <Input Label="Version" Value="{Binding ModVersion, Mode=TwoWay}" IsVisible="{Binding IsMod}" Required="True"/>
+    <CheckBox Content="Build HDR File" IsChecked="{Binding BuildHDRFile, Mode=TwoWay}" />
+    <StackPanel Orientation="Horizontal">
+      <TextBlock Text="Archive Version" VerticalAlignment="Center" Width="150" />
+      <ComboBox ItemsSource="{Binding AvailableArchiveTypes}"
+          SelectedItem="{Binding ArchiveVersion, Mode=TwoWay}"
+          Width="150" />
     </StackPanel>
+    
     <Button Content="Save settings" Click="SaveSettings_Click" HorizontalAlignment="Center" HorizontalContentAlignment="Center" />
   </StackPanel>
 </Window>

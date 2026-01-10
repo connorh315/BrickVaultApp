@@ -29,9 +29,24 @@ public partial class BuildSettingsWindow : Window
         Close();
     }
 
+    private bool ValidateValue(ref string value)
+    {
+        if (string.IsNullOrEmpty(value))
+        {
+            value = " "; 
+            value = ""; // Trigger validation
+            return true;
+        }
+
+        return false;
+    }
+
     private async void SaveSettings_Click(object? sender, RoutedEventArgs e)
     {
         if (DataContext is not BuildArchiveViewModel vm) return;
+
+        if (!vm.Validate())
+            return;
 
         vm.CommitSettings = true; // Means that the window closed with the "Save settings" button, rather than by closing the window.
 

@@ -19,11 +19,31 @@
   </Design.PreviewWith>
  
   <ControlTheme x:Key="{x:Type controls:FileInput}" TargetType="controls:FileInput">
+
+    <Style Selector="^:not(:error) /template/ TextBox">
+      <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}"/>
+    </Style>
+
+    <Style Selector="^:error /template/ TextBox">
+      <Setter Property="BorderBrush" Value="Red" />
+    </Style>
+    
     <Setter Property="Template">
       <ControlTemplate>
         <Grid ColumnDefinitions="Auto,*">
-          <Button Grid.Column="0" x:Name="PART_Button" Content="..." Width="30" Margin="0,0,5,0" ToolTip.Tip="Open Filesystem picker"/>
-          <TextBox Grid.Column="1" x:Name="PART_Textbox" Text="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" Watermark="Path"/>
+          <TextBlock Grid.Column="0"
+                     Width="150"
+                     Text="{Binding Label,
+                                    RelativeSource={RelativeSource TemplatedParent}}"
+                     VerticalAlignment="Center"
+                     IsVisible="{Binding Label,
+                                         RelativeSource={RelativeSource TemplatedParent},
+                                         Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+          <Grid Grid.Column="1" ColumnDefinitions="Auto,*" MaxWidth="300">
+            <Button Grid.Column="0" x:Name="PART_Button" Content="..." Width="30" Margin="0,0,5,0" ToolTip.Tip="Open Filesystem picker"/>
+            <TextBox Grid.Column="1" x:Name="PART_Textbox" Text="{Binding Value, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}" Watermark="Path" BorderBrush="Red">
+            </TextBox>
+          </Grid>
         </Grid>
       </ControlTemplate>
     </Setter>

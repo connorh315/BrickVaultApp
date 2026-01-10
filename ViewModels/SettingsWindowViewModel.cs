@@ -35,6 +35,20 @@ namespace BrickVaultApp.ViewModels
             Settings.OpenWithApps.Add(new OpenWithEntry());
         }
 
+        public bool Validate()
+        {
+            bool valid = true;
+            foreach (var entry in Settings.OpenWithApps)
+            {
+                if (!entry.Validate())
+                {
+                    valid = false;
+                }
+            }
+
+            return false;
+        }
+
         public void SaveSettings()
         {
             Settings.Save();

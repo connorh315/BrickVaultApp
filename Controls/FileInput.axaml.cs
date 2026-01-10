@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Metadata;
 using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Interactivity;
@@ -10,8 +11,31 @@ using System.IO;
 
 namespace BrickVaultApp;
 
+[PseudoClasses(":error")]
 public class FileInput : TemplatedControl
 {
+    public static readonly StyledProperty<string?> LabelProperty =
+    AvaloniaProperty.Register<FileInput, string?>(
+        nameof(Label));
+
+    public string? Label
+    {
+        get => GetValue(LabelProperty);
+        set => SetValue(LabelProperty, value);
+    }
+
+    public static readonly StyledProperty<double> InputWidthProperty =
+    AvaloniaProperty.Register<Input, double>(
+        nameof(InputWidth),
+        defaultValue: 265); // NaN = Auto
+
+    public double InputWidth
+    {
+        get => GetValue(InputWidthProperty);
+        set => SetValue(InputWidthProperty, value);
+    }
+
+
     private string _value = "";
 
     public string Value
@@ -20,6 +44,8 @@ public class FileInput : TemplatedControl
         set
         {
             if (value == _value) return;
+
+            SetError(value == string.Empty);
 
             SetAndRaise(ValueProperty, ref _value, value);
         }
@@ -31,6 +57,18 @@ public class FileInput : TemplatedControl
             o => o.Value,
             (o, v) => o.Value = v,
             defaultBindingMode: BindingMode.TwoWay, enableDataValidation: true);
+
+    public static readonly StyledProperty<bool> RequiredProperty =
+    AvaloniaProperty.Register<FileInput, bool>(
+        nameof(Required),
+        defaultValue: false);
+
+    public bool Required
+    {
+        get => GetValue(RequiredProperty);
+        set => SetValue(RequiredProperty, value);
+    }
+
 
     public enum FileInputMode
     {
@@ -152,6 +190,7 @@ public class FileInput : TemplatedControl
                     break;
                 }
         }
+        if (Value == string.Empty) SetError(true); // Not updated
     }
 
 
@@ -159,10 +198,7 @@ public class FileInput : TemplatedControl
     {
         if (sender is not TextBox textbox) return;
 
-        // Basically, this forces the input to be valid, either by using the last appropriate value, or best case scenario it just updates back to itself again.
-        string original = Value;
-        Value = "00000";
-        Value = original;
+        if (Value == string.Empty || Value == null) SetError(true);
     }
 
     protected override void OnApplyTemplate(TemplateAppliedEventArgs e)
@@ -175,4 +211,14 @@ public class FileInput : TemplatedControl
         var button = e.NameScope.Find<Button>("PART_Button");
         button.Click += Open_Filesystem_Picker;
     }
+
+    private bool _hasError = false;
+
+    private void SetError(bool error)
+    {
+        if (!Required) return;
+        _hasError = error;
+        PseudoClasses.Set(":error", error);
+    }
+
 }
