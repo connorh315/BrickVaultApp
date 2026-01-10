@@ -12,7 +12,7 @@ namespace BrickVaultApp.Settings
     public class AppSettings : INotifyPropertyChanged
     {
         public const string AppName = "BrickVault";
-        public const string Version = "1.1.1";
+        public const string Version = "1.2.0";
 
         public static string AppString => $"{AppName} {Version}";
 
