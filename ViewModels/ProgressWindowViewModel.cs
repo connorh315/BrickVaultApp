@@ -55,12 +55,28 @@ namespace BrickVaultApp.ViewModels
 
             if (ctx.Extracted == ctx.Total)
             {
+                HasComplete = true;
                 InteractText = "Close";
                 timer.Stop();
+
+                ProgressColor = "Blue";
+                ProgressDecoration = "Underline";
             }
         }
 
-        public bool HasComplete => ctx.Extracted == ctx.Total;
+        private bool hasComplete;
+        public bool HasComplete
+        {
+            get => hasComplete;
+            set
+            {
+                if (hasComplete != value)
+                {
+                    hasComplete = value;
+                    OnPropertyChanged(nameof(HasComplete));
+                }
+            }
+        }
 
         private double progress;
         public double Progress
@@ -86,6 +102,34 @@ namespace BrickVaultApp.ViewModels
                 {
                     progressText = value;
                     OnPropertyChanged(nameof(ProgressText));
+                }
+            }
+        }
+
+        private string progressColor = "White";
+        public string ProgressColor
+        {
+            get => progressColor;
+            set
+            {
+                if (progressColor != value)
+                {
+                    progressColor = value;
+                    OnPropertyChanged(nameof(ProgressColor));
+                }
+            }
+        }
+
+        private string progressDecoration = "";
+        public string ProgressDecoration
+        {
+            get => progressDecoration;
+            set
+            {
+                if (progressDecoration != value)
+                {
+                    progressDecoration = value;
+                    OnPropertyChanged(nameof(ProgressDecoration));
                 }
             }
         }
@@ -117,6 +161,9 @@ namespace BrickVaultApp.ViewModels
                 }
             }
         }
+
+        public string NavigateLocation => ctx.NavigateLocation;
+        public bool ShouldSelect => ctx.ShouldSelect;
 
         public event PropertyChangedEventHandler? PropertyChanged;
         private void OnPropertyChanged(string propertyName) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));

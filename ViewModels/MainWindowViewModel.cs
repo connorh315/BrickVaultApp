@@ -29,6 +29,10 @@ namespace BrickVaultApp.ViewModels
 
         public List<TreeNodeViewModel> Leaves = new List<TreeNodeViewModel>();
 
+        public ObservableCollection<string> OpenFolderPaths => AppSettings.Settings.OpenFolderPaths;
+
+        public bool HasRecentFolders => OpenFolderPaths.Count > 0;
+
         public bool HasSearchResults => !string.IsNullOrWhiteSpace(SearchText);
 
         private DATFile currentDatFile;
@@ -190,9 +194,13 @@ namespace BrickVaultApp.ViewModels
                 p => OpenWith((TreeNodeViewModel)p),
                 (p) =>
                 {
-                    Console.WriteLine("Called!");
                     return p is TreeNodeViewModel;
                 });
+
+            OpenFolderPaths.CollectionChanged += (_, _) =>
+            {
+                PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(HasRecentFolders)));
+            };
         }
 
         public void Reset()
@@ -344,6 +352,14 @@ namespace BrickVaultApp.ViewModels
             StageTimer.StopStage();
 
             currentDatFiles = openedFiles;
+
+            OpenFolderPaths.Remove(folderLocation);
+            OpenFolderPaths.Insert(0, folderLocation);
+
+            if (OpenFolderPaths.Count > 3)
+                OpenFolderPaths.RemoveAt(OpenFolderPaths.Count - 1);
+
+            AppSettings.Settings.Save();
         }
 
         private static IReadOnlyList<DATFile> OrderDatFiles(IEnumerable<DATFile> dats)
@@ -368,10 +384,35 @@ namespace BrickVaultApp.ViewModels
 
             foreach (var node in selected)
             {
-                var targetPath = node.Path.TrimStart('\\');
-
                 foreach (var dat in ordered)
                 {
+                    if (dat.FileTree != null) // for one file: ~3ms using file tree vs ~198ms using that rubbish below. Why has it taken me this long to fix this...
+                    {
+                        var datNode = dat.FileTree.GetNode(node.Path);
+                        if (datNode != null)
+                        {
+                            if (datNode.File != null)
+                            {
+                                if (seenPaths.Add(datNode.File.Path))
+                                    result[dat].Add(datNode.File);
+                            }
+                            else
+                            {
+                                foreach (var file in dat.FileTree.EnumerateFilesRecursive(datNode))
+                                {
+                                    if (seenPaths.Add(file.Path))
+                                        result[dat].Add(file);
+                                }
+                            }
+
+                            break; // all files found in this archive
+                        }
+
+                        continue; // no files found in this archive, continue onto next
+                    }
+
+                    // Deprecate this ASAP!
+                    var targetPath = node.Path.TrimStart('\\');
                     foreach (var file in dat.Files)
                     {
                         var filePath = file.Path.TrimStart('\\');
@@ -396,30 +437,70 @@ namespace BrickVaultApp.ViewModels
         Dictionary<DATFile, List<ArchiveFile>> plan,
         string outputLocation,
         Window window)
+        {
+            int totalFiles = plan.Sum(p => p.Value.Count);
+            if (totalFiles == 0)
             {
-                int totalFiles = plan.Sum(p => p.Value.Count);
-                if (totalFiles == 0)
+                Console.WriteLine("Fatal: Could not locate files!");
+                return;
+            }
+
+            var cts = new CancellationTokenSource();
+            var ctx = new ThreadedExtractionCtx(1, totalFiles, cts)
+            {
+                DisplayOutput = AppSettings.Settings.ShouldLogProgressToCommandLine
+            };
+
+            ctx.NavigateLocation = outputLocation;
+
+            var progressWindow = new ProgressWindow(ctx);
+
+            bool isParentSame = true;
+            long parentCrc = long.MaxValue;
+            var parentPath = string.Empty;
+
+            foreach (var (dat, files) in plan)
+            {
+                if (files.Count > 0)
                 {
-                    Console.WriteLine("Could not locate files!");
-                    return;
+                    foreach (var file in files)
+                    {
+                        if (file is NewArchiveFile newFile)
+                        {
+                            var crc = DATFile.CalculateCRC32(newFile.Node.Parent.Path);
+
+                            if (parentCrc == long.MaxValue)
+                            {
+                                parentCrc = crc;
+                                parentPath = newFile.Node.Parent.Path;
+                            }
+                            else if (isParentSame)
+                            {
+                                isParentSame = parentCrc == crc;
+                            }
+                        }
+                    }
+                    dat.ExtractFiles(files.ToArray(), outputLocation, ctx);
                 }
+            }
 
-                var cts = new CancellationTokenSource();
-                var ctx = new ThreadedExtractionCtx(1, totalFiles, cts)
-                {
-                    DisplayOutput = AppSettings.Settings.ShouldLogProgressToCommandLine
-                };
-
-                var progressWindow = new ProgressWindow(ctx);
-
+            if (totalFiles == 1)
+            {
                 foreach (var (dat, files) in plan)
                 {
                     if (files.Count > 0)
-                        dat.ExtractFiles(files.ToArray(), outputLocation, ctx);
+                    {
+                        parentPath = files[0].Path;
+                        break;
+                    }
                 }
-
-                await progressWindow.ShowDialog(window);
+                ctx.ShouldSelect = true;
             }
+
+            ctx.NavigateLocation = Path.Join(outputLocation, parentPath);
+
+            await progressWindow.ShowDialog(window);
+        }
 
         public async Task ExtractSelection(
         List<TreeNodeViewModel> selected,

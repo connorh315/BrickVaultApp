@@ -15,7 +15,14 @@
     <Menu Grid.Row="0">
       <MenuItem Header="_File">
         <MenuItem Header="_Open" Click="MenuItem_Open_Click"/>
-        <MenuItem Header="O_pen Folder" Click="MenuItem_Open_Folder_Click"/>
+        <MenuItem Header="O_pen Folder" Click="MenuItem_Open_Folder_Click" />
+        <MenuItem Header="Open Recent" ItemsSource="{Binding OpenFolderPaths}" IsVisible="{Binding HasRecentFolders}">
+          <MenuItem.ItemTemplate>
+            <DataTemplate>
+              <MenuItem Header="{Binding}" Click="Folder_History_Click"/>
+            </DataTemplate>
+          </MenuItem.ItemTemplate>  
+        </MenuItem>
         <MenuItem Header="_Build Archive" Click="MenuItem_BuildArchive_Click"/>
         <MenuItem Header="_Exit" Click="MenuItem_Exit_Click"/>
       </MenuItem>

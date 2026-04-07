@@ -131,6 +131,8 @@ namespace BrickVaultApp.Settings
         private static string Normalize(string ext) =>
             ext.Trim().TrimStart('.').ToLowerInvariant();
 
+        public ObservableCollection<string> OpenFolderPaths = new();
+
         public void Save()
         {
             if (DoNotSave) return;
@@ -139,7 +141,7 @@ namespace BrickVaultApp.Settings
 
             foreach (var prop in typeof(AppSettings).GetProperties())
             {
-                if (prop.Name == nameof(OpenWithApps))
+                if (prop.Name == nameof(OpenWithApps) || prop.Name == nameof(OpenFolderPaths))
                     continue;
 
                 if (prop.CanRead)
@@ -155,6 +157,11 @@ namespace BrickVaultApp.Settings
             foreach (var entry in OpenWithApps)
                 lines.Add($"{entry.Extensions}={entry.ApplicationPath}");
 
+            lines.Add("");
+            lines.Add("[OpenFolderHistory]");
+            foreach (var entry in OpenFolderPaths)
+                lines.Add($"{entry}");
+
             File.WriteAllLines(settingsFile, lines);
         }
 
@@ -169,20 +176,22 @@ namespace BrickVaultApp.Settings
             if (!File.Exists(settingsFile))
                 return settings;
 
-            bool inOpenWith = false;
+            bool inSection = false;
+            string section = string.Empty;
 
             foreach (var line in File.ReadAllLines(settingsFile))
             {
                 if (string.IsNullOrWhiteSpace(line))
                     continue;
 
-                if (line == "[OpenWith]")
+                if (line.StartsWith("[") && line.EndsWith("]"))
                 {
-                    inOpenWith = true;
+                    inSection = true;
+                    section = line[1..^1];
                     continue;
                 }
 
-                if (!inOpenWith)
+                if (!inSection)
                 {
                     var parts = line.Split('=', 2);
                     if (parts.Length != 2) continue;
@@ -200,7 +209,7 @@ namespace BrickVaultApp.Settings
                         catch { }
                     }
                 }
-                else
+                else if (section == "OpenWith")
                 {
                     var parts = line.Split('=', 2);
                     if (parts.Length != 2) continue;
@@ -210,6 +219,10 @@ namespace BrickVaultApp.Settings
                         Extensions = parts[0],
                         ApplicationPath = parts[1]
                     });
+                }
+                else if (section == "OpenFolderHistory")
+                {
+                    settings.OpenFolderPaths.Add(line);
                 }
             }
 

@@ -8,6 +8,7 @@ using BrickVault;
 using BrickVaultApp.ViewModels;
 using System;
 using System.Diagnostics;
+using System.IO;
 
 namespace BrickVaultApp;
 
@@ -37,6 +38,41 @@ public partial class ProgressWindow : Window
         {
             Close();
         }
+    }
+
+    private void NavigateToClick(object? sender, RoutedEventArgs e)
+    {
+        if (DataContext is not ProgressWindowViewModel vm)
+            return;
+
+        if (!vm.HasComplete) return;
+
+        string cleanup = Path.GetFullPath(vm.NavigateLocation);
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = "explorer.exe",
+            UseShellExecute = true
+        };
+
+        if (vm.ShouldSelect)
+        {
+            psi.Arguments = $"/select,\"{cleanup}\"";
+        }
+        else if (Directory.Exists(cleanup))
+        {
+            psi.Arguments = $"\"{cleanup}\"";
+        }
+        else if (File.Exists(cleanup))
+        {
+            psi.Arguments = $"/select,\"{cleanup}\"";
+        }
+        else
+        {
+            return;
+        }
+
+        Process.Start(psi);
     }
 
     private void OnInteractClick(object? sender, RoutedEventArgs e)

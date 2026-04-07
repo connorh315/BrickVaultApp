@@ -104,19 +104,36 @@ namespace BrickVaultApp
             return folder[0].TryGetLocalPath() ?? folder[0].Path.OriginalString;
         }
 
-        private async void MenuItem_Open_Folder_Click(object? sender, RoutedEventArgs e)
+        private void OpenFolder(string path)
         {
-            string? selectedPath = await CreateFolderModal("Select Game Folder", AppSettings.Settings.LastOpenFolderDirectory);
-            if (selectedPath == null) return;
-            AppSettings.Settings.LastOpenFolderDirectory = selectedPath;
+            if (path == null) return;
+            AppSettings.Settings.LastOpenFolderDirectory = path;
 
             MainWindowViewModel vm = (MainWindowViewModel)DataContext!;
 
-            vm.OpenFolder(selectedPath);
+            vm.OpenFolder(path);
 
-            StageTimer.PrintReport();
+            Title = $"{AppSettings.AppString} | Viewing {vm.OpenFilesCount} files in {path}";
+        }
 
-            Title = $"{AppSettings.AppString} | Viewing {vm.OpenFilesCount} files in {selectedPath}";
+        private async void MenuItem_Open_Folder_Click(object? sender, RoutedEventArgs e)
+        {
+            string? selectedPath = await CreateFolderModal("Select Game Folder", AppSettings.Settings.LastOpenFolderDirectory);
+
+            OpenFolder(selectedPath);
+
+            //StageTimer.PrintReport();
+        }
+
+        private async void Folder_History_Click(object? sender, RoutedEventArgs e)
+        {
+            //e.Handled = true;
+
+            var path = (string)((MenuItem)sender).Header;
+
+            await Task.Yield();
+
+            OpenFolder(path);
         }
 
         private void Window_DragDrop(object sender, DragEventArgs e)
